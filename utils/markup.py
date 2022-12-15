@@ -3,12 +3,13 @@ from assets.string import *
 
 CANCEL_BTN = types.KeyboardButton(CANCEL)
 
-DEFAULT_MARKUP = types.ReplyKeyboardMarkup(one_time_keyboard=True).add(START_COMMAND)
-READY_MARKUP = types.ReplyKeyboardMarkup(one_time_keyboard=True).add(*[READY, NOT_READY])
+KEYBOARD_ARGS = {"one_time_keyboard": True, "resize_keyboard": True}
+DEFAULT_MARKUP = types.ReplyKeyboardMarkup(**KEYBOARD_ARGS).add(*[START_COMMAND, CONTACT_COMMAND])
+READY_MARKUP = types.ReplyKeyboardMarkup(**KEYBOARD_ARGS).add(*[READY, NOT_READY])
 
 
 def create_markup(options):
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    markup = types.ReplyKeyboardMarkup(**KEYBOARD_ARGS)
     options = options.split("; ")
 
     btns = []

@@ -1,8 +1,13 @@
 START_COMMAND = "/start"
+CONTACT_COMMAND = "/contact"
 READY = "Yes, let’s start! ⏩"
 NOT_READY = "Maybe next time ❌"
 
 SAFA = "Scholarships and Financial Aids"
+STATISTICS = "Statistics"
+USER_ID = "user_id"
+USERNAME = "username"
+MAX_STEPS = "max_steps"
 CITIZENSHIP_STATUS = "Citizenship Status"
 GENDER = "Gender"
 RACE = "Race"
@@ -10,6 +15,3 @@ PCI = "PCI"
 YEAR_OF_STUDY = "Year of Study"
 PILLAR = "Pillar"
 CANCEL = "Cancel ❌"
-EMAIL = "Email"
-
-

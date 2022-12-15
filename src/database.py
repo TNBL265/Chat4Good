@@ -19,15 +19,19 @@ class StatsDatabase:
         self.client = MongoClient(CONNECTION_STRING)
         self.db = self.client["C4G"]
         self.users_collections = self.db["users"]
-        self.global_stats_collections = self.db["global_stats"]
-        self.local_data = None
 
-    def reset_data(self):
-        self.local_data = {
-            "user_id": None,
-            "username": None,
-            "email": None,
-            "max_steps": 0,
+    @staticmethod
+    def reset_data():
+        return {
+            USER_ID: None,
+            USERNAME: None,
+            CITIZENSHIP_STATUS: None,
+            GENDER: None,
+            RACE: None,
+            PCI: None,
+            YEAR_OF_STUDY: None,
+            PILLAR: None,
+            MAX_STEPS: 0
         }
 
     def insert_user(self, user_data):
@@ -42,37 +46,10 @@ class StatsDatabase:
                 }
             )
 
-    def update_global_stats(self, interaction_count, user_id):
-        _global_stats_id = self.global_stats_collections.find_one({}, {"interaction_count": 1})
-        if not _global_stats_id:
-            self.global_stats_collections.insert_one(
-                {
-                    "interaction_count": interaction_count,
-                    "user_list": [user_id],
-                    "user_count": 1
-                }
-            )
-        else:
-            global_stats = self.global_stats_collections.find_one(_global_stats_id)
-            user_set = set(global_stats["user_list"])
-            user_set.add(user_id)
-            self.global_stats_collections.update_one(
-                _global_stats_id,
-                {
-                    "$set": {
-                        "interaction_count": interaction_count,
-                        "user_list": list(user_set),
-                        "user_count": len(user_set)
-                    }
-                }
-            )
-
 
 class ScholarshipAndFinancialAidDatabase:
-    def __init__(self, safa_csv_filename):
-        self.safa_csv_filename = safa_csv_filename
-        # Need match csv order
-        self.columns = {
+    # Need match csv order
+    columns = {
             CITIZENSHIP_STATUS: "Singapore citizen; Singapore PR; Foreigner",
             GENDER: "Male; Female; Non-binary; Prefer not to disclose",
             RACE: "Chinese; Malay; Indian; Eurasian; Others; Prefer not to disclose",
@@ -80,6 +57,9 @@ class ScholarshipAndFinancialAidDatabase:
             YEAR_OF_STUDY: "Freshmore; Sophomore; Junior; Senior",
             PILLAR: "EPD; ESD; ASD; CSD; DAI"
         }
+
+    def __init__(self, safa_csv_filename):
+        self.safa_csv_filename = safa_csv_filename
         self.data = None
         self.safa_options = None
 
@@ -101,7 +81,7 @@ class ScholarshipAndFinancialAidDatabase:
         return msg[:-1]
 
     def parse_csv(self, filename):
-        local_db = ScholarshipAndFinancialAidDatabase.create_db(self.columns)
+        local_db = ScholarshipAndFinancialAidDatabase.create_db(ScholarshipAndFinancialAidDatabase.columns)
 
         with open(filename, "r") as file:
             # Skip first line
@@ -111,10 +91,10 @@ class ScholarshipAndFinancialAidDatabase:
                 safa_name = row[0]
                 safa_link = row[-1]
                 for i, r in enumerate(row[1:-1]):
-                    col_name = list(self.columns)[i]
+                    col_name = list(ScholarshipAndFinancialAidDatabase.columns)[i]
                     if not r:
                         # No/vague restrictions => include all
-                        r = self.columns[col_name]
+                        r = ScholarshipAndFinancialAidDatabase.columns[col_name]
                     for dr in r.split("; "):
                         local_db[col_name][dr].add((safa_name, safa_link))
         return local_db
