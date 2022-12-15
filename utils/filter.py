@@ -1,23 +1,21 @@
+import re
+
 import telebot
 from telebot import custom_filters
 
-
-class IsValidGPA(custom_filters.SimpleCustomFilter):
-    key = "valid_gpa"
-
-    @staticmethod
-    def check(message: telebot.types.Message):
-        gpa = message.text
-        try:
-            gpa = float(gpa)
-            return min(0, 5) <= gpa <= max(0, 5)
-        except ValueError:
-            return False
+from assets.string import CANCEL
 
 
-class IsAcceptedTermsAndConditions(custom_filters.SimpleCustomFilter):
-    key = "accepted_terms_and_conditions"
+def is_not_canceled(message):
+    return message.text != CANCEL
+
+
+class IsValidEmail(custom_filters.SimpleCustomFilter):
+    key = "valid_email"
 
     @staticmethod
     def check(message: telebot.types.Message):
-        return True if message.text == "Accept" else False
+        regex = re.compile(r'([A-Za-z0-9]+[.-_])*[A-Za-z0-9]+@[A-Za-z0-9-]+(\.[A-Z|a-z]{2,})+')
+        if re.fullmatch(regex, message.text):
+            return True
+        return False

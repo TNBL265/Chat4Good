@@ -1,58 +1,64 @@
 from telebot.handler_backends import BaseMiddleware
 
 from .bot import bot
-from .database import insert_user, update_global_stats
+from .database import StatsDatabase
 from assets.string import *
+from utils.markup import DEFAULT_MARKUP
+
+
+stats_db = StatsDatabase()
 
 
 def collect_statistics(message):
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        if data:
-            stats = data.get("stats", None)
-            if not stats:
-                data["stats"] = {
-                    "user_id": message.from_user.id,
-                    "username": message.from_user.username,
-                    "max_steps": len(data),
-                }
-            else:
-                stats["max_steps"] = max(stats["max_steps"], len(data))
+    stats_db.local_data["user_id"] = message.from_user.id
+    stats_db.local_data["username"] = message.from_user.username
+    stats_db.local_data["max_steps"] += 1
+
+
+def save_statistics(interaction_count):
+    if stats_db.local_data:
+        user_id = stats_db.local_data["user_id"]
+        username = stats_db.local_data["username"]
+        max_steps = stats_db.local_data["max_steps"]
+        email = stats_db.local_data["email"]
+        user_data = {
+            "user_id": user_id,
+            "username": username,
+            "email": email,
+            "max_steps": max_steps
+        }
+        stats_db.insert_user(user_data)
+        stats_db.update_global_stats(interaction_count, user_id)
 
 
 class Middleware(BaseMiddleware):
     def __init__(self):
         self.update_types = ['message']
-        self.stats = None
 
     def pre_process(self, message, data):
-        try:
-            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-                if data:
-                    self.stats = data.get("stats", None)
-        except KeyError:
-            pass
-
-        if message.text == CANCEL_STRING:
-            bot.delete_state(message.from_user.id, message.chat.id)
-            bot.send_message(message.chat.id, "All your information has been reset. Press /start to try again.")
+        if message.text == START_COMMAND:
+            stats_db.reset_data()
 
     def post_process(self, message, data, exception):
         if exception:
             print(exception)
-        elif message.text == CANCEL_STRING or message.text == ACCEPT_STRING:
-            print("Saving statistics")
-            if self.stats:
-                user_id = self.stats["user_id"]
-                username = self.stats["username"]
-                max_steps = self.stats["max_steps"]
-                interaction_count = message.message_id
-
-                # Insert/Update mongodb
-                insert_user(user_id, username, max_steps)
-                update_global_stats(interaction_count, user_id)
-
+        elif message.text == NOT_READY or message.text == CANCEL:
+            if message.text == CANCEL:
+                save_statistics(interaction_count=message.message_id)
+            bot.send_message(
+                message.chat.id,
+                f"Thank you, have a nice day! ☀️",
+                reply_markup=DEFAULT_MARKUP
+            )
+            bot.delete_state(message.from_user.id, message.chat.id)
+        elif message.text == EMAIL:
+            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+                stats_db.local_data["email"] = data[EMAIL]
+            save_statistics(interaction_count=message.message_id)
+            bot.delete_state(message.from_user.id, message.chat.id)
         else:
             collect_statistics(message)
+            print(stats_db.local_data)
 
 
 bot.setup_middleware(Middleware())
